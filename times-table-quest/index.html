@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#6d5dfc" />
-<title>Times Table Quest</title>
+<title>Times Table Quest — Learn + Practice</title>
 <style>
   :root{
     --bg:#f6f7fb;
@@ -93,6 +93,26 @@
   .weakList{display:grid;gap:8px}
   .weakItem{display:flex;align-items:center;justify-content:space-between;background:#f7f8fb;border-radius:14px;padding:11px 13px}
   .weakFact{font-weight:1000}
+
+  .learnLayout{display:grid;grid-template-columns:1fr .9fr;gap:16px}
+  .strategyBox{background:#f1efff;border-radius:20px;padding:16px;margin:12px 0}
+  .strategyBox strong{display:block;font-size:20px;margin-bottom:6px;color:#5140e5}
+  .stageRow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:14px 0}
+  .stagePill{background:#eef1f7;border-radius:14px;padding:9px 5px;text-align:center;font-size:11px;font-weight:900;color:var(--muted)}
+  .stagePill.active{background:var(--ink);color:#fff}
+  .learnFact{background:linear-gradient(135deg,#f7f5ff,#eef8ff);border-radius:24px;padding:20px;text-align:center;margin:12px 0}
+  .learnEquation{font-size:clamp(42px,8vw,72px);font-weight:1000;letter-spacing:-2px;margin:6px 0}
+  .hintBox{background:#fff7da;border-radius:16px;padding:12px 14px;font-weight:800;line-height:1.45;color:#775700}
+  .tableChart{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+  .tableFact{background:#f3f5fa;border-radius:12px;padding:10px;font-weight:900;text-align:center}
+  .tableFact.active{outline:3px solid var(--primary);background:#f1efff;color:#5140e5}
+  .methodGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}
+  .methodCard{background:#f6f7fb;border-radius:15px;padding:11px;min-width:0}
+  .methodCard b{display:block;font-size:17px;margin-bottom:3px}
+  .methodCard span{display:block;font-size:11px;color:var(--muted);font-weight:700;line-height:1.35}
+  .learnActions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  @media(max-width:780px){.learnLayout{grid-template-columns:1fr}.methodGrid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:470px){.stageRow{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.stagePill{font-size:9px;padding:8px 2px}.methodGrid{grid-template-columns:1fr}.tableChart{grid-template-columns:1fr 1fr}}
   .hidden{display:none!important}
   .overlay{position:fixed;inset:0;background:rgba(20,22,35,.72);display:grid;place-items:center;padding:20px;z-index:50}
   .modal{background:#fff;border-radius:28px;padding:24px;max-width:520px;width:100%;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.25)}
@@ -173,7 +193,7 @@
         <h3 style="margin-top:16px">Current Level</h3>
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
           <div><strong id="currentLevelText" style="font-size:26px">×0</strong><div class="tiny" id="currentLevelStatus">Start here</div></div>
-          <button class="btn soft" id="practiceCurrentBtn">Practice</button>
+          <div class="ctaRow" style="margin-top:0"><button class="btn soft" id="learnCurrentBtn">📚 Learn</button><button class="btn dark" id="practiceCurrentBtn">🧠 Practice</button></div>
         </div>
         <div class="progressTrack" style="margin-top:12px"><div id="currentMasteryBar" class="progressFill"></div></div>
         <div class="tiny" style="margin-top:6px"><span id="currentMasteryText">0%</span> mastery</div>
@@ -187,9 +207,46 @@
       <p class="tiny">Pick any unlocked level. Weak facts are automatically shown more often.</p>
       <div id="playLevelMap" class="levels" style="margin:14px 0"></div>
       <div class="ctaRow">
-        <button class="btn dark" id="startPracticeBtn">🧠 Practice</button>
+        <button class="btn primary" id="startLearnBtn" style="background:#f1efff;color:#5140e5">📚 Learn Table</button>
+        <button class="btn dark" id="startPracticeBtn">🧠 Recall Practice</button>
         <button class="btn good" id="startTestBtn">🏁 Level Test</button>
         <button class="btn soft" id="startQuickBtn">🎯 Quick 10</button>
+      </div>
+    </div>
+
+    <div id="learnCard" class="card hidden">
+      <div class="gameHeader">
+        <button class="btn soft" id="learnBackBtn">← Challenges</button>
+        <span class="modeBadge" id="learnBadge">📚 Learn ×0</span>
+        <div class="pill">Learn → Recall → Speed</div>
+      </div>
+      <div class="stageRow" aria-label="Learning stages">
+        <div class="stagePill active">1 SEE IT</div><div class="stagePill">2 SAY IT</div><div class="stagePill">3 COMPLETE</div><div class="stagePill">4 RECALL</div><div class="stagePill">5 SPEED</div>
+      </div>
+      <div class="learnLayout">
+        <div>
+          <div class="strategyBox"><strong id="strategyTitle">Memory method</strong><div id="strategyText"></div></div>
+          <div class="learnFact">
+            <div class="tiny">STUDY → SAY THE WHOLE FACT OUT LOUD</div>
+            <div id="learnEquation" class="learnEquation">0 × 0 = 0</div>
+            <div id="learnHint" class="hintBox"></div>
+            <div class="learnActions"><button class="btn soft" id="learnPrevBtn">← Previous</button><button class="btn good" id="learnSayBtn">🗣️ I said it</button><button class="btn dark" id="learnNextBtn">Next →</button></div>
+            <div class="tiny" id="learnCounter" style="margin-top:9px">Fact 1 of 13</div>
+          </div>
+          <h3 style="margin-top:18px">Next stages</h3>
+          <div class="ctaRow">
+            <button class="btn primary" id="guidedPracticeBtn" style="background:#fff1c8;color:#6f5200">✏️ Guided Fill-In</button>
+            <button class="btn dark" id="learnRecallBtn">🧠 Recall Practice</button>
+            <button class="btn good" id="learnSpeedBtn">⚡ Speed 10</button>
+          </div>
+          <p class="tiny" style="line-height:1.5">Guided Fill-In shows a memory hint and removes the speed pressure. Recall Practice removes the hint. Speed 10 adds the 5-second fluency goal.</p>
+        </div>
+        <div>
+          <h3 id="chartTitle">×0 Table: 0–12</h3>
+          <div id="tableChart" class="tableChart"></div>
+          <h3 style="margin-top:18px">Memory methods ×1–×9</h3>
+          <div id="methodGrid" class="methodGrid"></div>
+        </div>
       </div>
     </div>
 
@@ -204,7 +261,7 @@
 
       <div id="question" class="question">0 × 0</div>
       <div class="timer">
-        <div style="display:flex;justify-content:space-between" class="tiny"><span>Fast recall goal</span><span id="timeText">0.0s</span></div>
+        <div style="display:flex;justify-content:space-between" class="tiny"><span id="timerGoalLabel">Fast recall goal</span><span id="timeText">0.0s</span></div>
         <div class="timerbar"><div id="timerFill" class="timerfill"></div></div>
       </div>
       <div id="answerBox" class="answerBox">?</div>
@@ -275,6 +332,21 @@
   "use strict";
 
   const ORDER = [0,1,2,4,5,10,3,6,7,8,9,11,12];
+  const STRATEGIES = {
+    0:{title:"Zero rule", text:"Anything multiplied by 0 is 0."},
+    1:{title:"Same-number rule", text:"Multiplying by 1 keeps the number the same."},
+    2:{title:"Double it", text:"×2 means add the number to itself once."},
+    3:{title:"Double + one more", text:"Find ×2, then add one more group."},
+    4:{title:"Double, then double again", text:"Double the number once, then double that answer."},
+    5:{title:"Count by 5s", text:"Answers alternate ending in 5 and 0. Think 5, 10, 15, 20…"},
+    6:{title:"×5 + one more group", text:"Use the easy ×5 fact, then add the number one more time."},
+    7:{title:"×5 + ×2", text:"Break a hard ×7 fact into an easy ×5 fact plus a double."},
+    8:{title:"Double three times", text:"×8 = ×2, then double again, then double one more time."},
+    9:{title:"×10 − one group", text:"Multiply by 10, then subtract one copy of the number."},
+    10:{title:"Add a zero", text:"For whole numbers, ×10 puts a zero after the number."},
+    11:{title:"Repeat for 1–9", text:"For 1 through 9, ×11 repeats the digit: 11×7 = 77. For larger facts, use ×10 + one group."},
+    12:{title:"×10 + ×2", text:"Build ×12 from the easy ×10 fact plus a double."}
+  };
   const STORAGE_KEY = "timesTableQuest_v1";
   const todayKey = () => new Date().toISOString().slice(0,10);
 
@@ -294,6 +366,7 @@
   let state = loadState();
   let game = null;
   let timerRAF = null;
+  let learnIndex = 0;
 
   function loadState(){
     try{
@@ -497,6 +570,75 @@
     saveState();
   }
 
+  function factHint(table,m){
+    const dbl=m*2;
+    switch(table){
+      case 0:return `${m} groups of zero still make 0.`;
+      case 1:return `×1 keeps the number: ${m} stays ${m}.`;
+      case 2:return `Double ${m}: ${m} + ${m} = ${m*2}.`;
+      case 3:return `Double ${m} = ${dbl}, then add ${m}: ${dbl} + ${m} = ${m*3}.`;
+      case 4:return `Double ${m} = ${dbl}; double ${dbl} = ${m*4}.`;
+      case 5:return `Count by 5s ${m} times. The answer is ${m*5}.`;
+      case 6:return `Use ×5: ${5*m}, then add ${m}: ${5*m} + ${m} = ${6*m}.`;
+      case 7:return `Use ×5 + ×2: ${5*m} + ${2*m} = ${7*m}.`;
+      case 8:return `Double ${m} → ${2*m} → ${4*m} → ${8*m}.`;
+      case 9:return `Use ×10 − one group: ${10*m} − ${m} = ${9*m}.`;
+      case 10:return `${m} × 10 = ${10*m}. Put a zero after ${m}.`;
+      case 11:return m<=9 ? `For 1–9, repeat the digit: ${m}${m}.` : `Use ×10 + one group: ${10*m} + ${m} = ${11*m}.`;
+      case 12:return `Use ×10 + ×2: ${10*m} + ${2*m} = ${12*m}.`;
+      default:return `Build the fact from an easier fact you already know.`;
+    }
+  }
+
+  function renderMethodGrid(){
+    const grid=document.getElementById("methodGrid");
+    if(!grid) return;
+    grid.innerHTML="";
+    for(let t=1;t<=9;t++){
+      const d=document.createElement("div");
+      d.className="methodCard";
+      d.innerHTML=`<b>×${t}: ${STRATEGIES[t].title}</b><span>${STRATEGIES[t].text}</span>`;
+      grid.appendChild(d);
+    }
+  }
+
+  function renderLearn(){
+    const t=state.selectedLevel;
+    const st=STRATEGIES[t]||STRATEGIES[1];
+    document.getElementById("learnBadge").textContent=`📚 Learn ×${t}`;
+    document.getElementById("strategyTitle").textContent=`×${t} method: ${st.title}`;
+    document.getElementById("strategyText").textContent=st.text;
+    document.getElementById("chartTitle").textContent=`×${t} Table: 0–12`;
+    document.getElementById("learnEquation").textContent=`${t} × ${learnIndex} = ${t*learnIndex}`;
+    document.getElementById("learnHint").textContent=factHint(t,learnIndex);
+    document.getElementById("learnCounter").textContent=`Fact ${learnIndex+1} of 13 • Say: “${t} times ${learnIndex} equals ${t*learnIndex}.”`;
+    const chart=document.getElementById("tableChart");
+    chart.innerHTML="";
+    for(let m=0;m<=12;m++){
+      const x=document.createElement("div");
+      x.className="tableFact"+(m===learnIndex?" active":"");
+      x.textContent=`${t} × ${m} = ${t*m}`;
+      x.addEventListener("click",()=>{learnIndex=m;renderLearn();});
+      chart.appendChild(x);
+    }
+    renderMethodGrid();
+  }
+
+  function openLearn(){
+    if(game) endGame(true);
+    learnIndex=0;
+    document.getElementById("preGame").classList.add("hidden");
+    document.getElementById("gameCard").classList.add("hidden");
+    document.getElementById("learnCard").classList.remove("hidden");
+    renderLearn();
+    switchTab("play");
+  }
+
+  function closeLearn(){
+    document.getElementById("learnCard").classList.add("hidden");
+    document.getElementById("preGame").classList.remove("hidden");
+  }
+
   function weightedMultiplier(table){
     const bag=[];
     for(let m=0;m<=12;m++){
@@ -527,24 +669,28 @@
       mode,
       table:selected,
       questionIndex:0,
-      total: mode==="quick" ? 10 : mode==="test" ? 13 : mode==="daily" ? 9999 : 20,
+      total: mode==="quick" ? 10 : mode==="test" ? 13 : mode==="guided" ? 13 : mode==="daily" ? 9999 : 20,
       correct:0,
       fluent:0,
-      hearts:3,
+      hearts: mode==="guided" ? 99 : 3,
       typed:"",
       startMs:0,
       currentM:0,
       answered:false,
       dailyEnd: mode==="daily" ? Date.now()+15*60*1000 : null,
-      testMultipliers: mode==="test" ? shuffle([...Array(13).keys()]) : null
+      testMultipliers: mode==="test" ? shuffle([...Array(13).keys()]) : null,
+      guidedMultipliers: mode==="guided" ? shuffle([...Array(13).keys()]) : null
     };
     document.getElementById("preGame").classList.add("hidden");
+    document.getElementById("learnCard").classList.add("hidden");
     document.getElementById("gameCard").classList.remove("hidden");
     document.getElementById("modeBadge").textContent =
       mode==="daily" ? "⚡ 15-Min Daily Quest" :
       mode==="quick" ? "🎯 Quick 10" :
-      mode==="test" ? "🏁 Level Test" : "🧠 Practice";
-    document.getElementById("hearts").textContent=game.hearts;
+      mode==="test" ? "🏁 Level Test" :
+      mode==="guided" ? "✏️ Guided Fill-In" : "🧠 Recall Practice";
+    document.getElementById("hearts").textContent=mode==="guided" ? "∞" : game.hearts;
+    document.getElementById("timerGoalLabel").textContent=mode==="guided" ? "Learning mode — no speed pressure" : "Fast recall goal";
     nextQuestion();
     switchTab("play");
   }
@@ -561,18 +707,18 @@
     if(!game) return;
     if(game.mode==="daily" && Date.now()>=game.dailyEnd) return finishGame();
     if(game.mode!=="daily" && game.questionIndex>=game.total) return finishGame();
-    if(game.hearts<=0 && game.mode!=="practice") return finishGame();
+    if(game.hearts<=0 && game.mode!=="practice" && game.mode!=="guided") return finishGame();
 
     game.answered=false;
     game.typed="";
-    game.currentM = game.mode==="test" ? game.testMultipliers[game.questionIndex] : weightedMultiplier(game.table);
+    game.currentM = game.mode==="test" ? game.testMultipliers[game.questionIndex] : game.mode==="guided" ? game.guidedMultipliers[game.questionIndex] : weightedMultiplier(game.table);
     game.questionIndex++;
     game.startMs=performance.now();
 
     document.getElementById("question").textContent=`${game.table} × ${game.currentM}`;
     document.getElementById("answerBox").textContent="?";
     document.getElementById("answerBox").className="answerBox";
-    document.getElementById("feedback").textContent="";
+    document.getElementById("feedback").textContent=game.mode==="guided" ? `💡 ${factHint(game.table,game.currentM)}` : "";
     updateRoundProgress();
     speakQuestion(game.table,game.currentM);
     runTimer();
@@ -580,6 +726,11 @@
 
   function runTimer(){
     cancelAnimationFrame(timerRAF);
+    if(game && game.mode==="guided"){
+      document.getElementById("timeText").textContent="No timer";
+      document.getElementById("timerFill").style.width="0%";
+      return;
+    }
     const tick=()=>{
       if(!game || game.answered) return;
       const ms=performance.now()-game.startMs;
@@ -631,7 +782,7 @@
     const expected=game.table*game.currentM;
     const given=Number(game.typed);
     const correct=given===expected;
-    const fluent=correct && elapsed<=5000;
+    const fluent=correct && elapsed<=5000 && game.mode!=="guided";
     const fact=getFact(game.table,game.currentM);
 
     fact.attempts++;
@@ -644,7 +795,7 @@
       if(fluent) game.fluent++;
     }else{
       fact.correctStreak=0;
-      game.hearts=Math.max(0,game.hearts-1);
+      if(game.mode!=="guided") game.hearts=Math.max(0,game.hearts-1);
     }
 
     const daily=ensureDaily();
@@ -652,7 +803,7 @@
     if(correct) daily.correct++;
     if(fluent) daily.fluent++;
 
-    let gain=correct ? 10 : 0;
+    let gain=correct ? (game.mode==="guided" ? 5 : 10) : 0;
     if(fluent) gain+=5;
     if(correct && fact.correctStreak>=3) gain+=5;
     state.xp+=gain;
@@ -662,9 +813,9 @@
     box.className="answerBox "+(correct?"good":"bad");
     box.textContent=correct ? expected : `${given} → ${expected}`;
     document.getElementById("feedback").textContent = correct
-      ? (fluent ? `⚡ Nice! ${ (elapsed/1000).toFixed(1)}s  +${gain} XP` : `✅ Correct! Build the speed next. +${gain} XP`)
-      : `❌ Almost — ${game.table} × ${game.currentM} = ${expected}`;
-    document.getElementById("hearts").textContent=game.hearts;
+      ? (game.mode==="guided" ? `✅ Correct! ${factHint(game.table,game.currentM)} +${gain} XP` : fluent ? `⚡ Nice! ${ (elapsed/1000).toFixed(1)}s  +${gain} XP` : `✅ Correct! Build the speed next. +${gain} XP`)
+      : (game.mode==="guided" ? `💡 ${game.table} × ${game.currentM} = ${expected}. ${factHint(game.table,game.currentM)}` : `❌ Almost — ${game.table} × ${game.currentM} = ${expected}`);
+    document.getElementById("hearts").textContent=game.mode==="guided" ? "∞" : game.hearts;
 
     recalcUnlocks();
     saveState();
@@ -672,7 +823,7 @@
 
     setTimeout(()=> {
       if(!game) return;
-      if(game.hearts<=0 && game.mode!=="practice") finishGame();
+      if(game.hearts<=0 && game.mode!=="practice" && game.mode!=="guided") finishGame();
       else nextQuestion();
     }, correct ? 850 : 1450);
   }
@@ -683,7 +834,9 @@
     const g=game;
     game=null;
     document.getElementById("gameCard").classList.add("hidden");
+    document.getElementById("learnCard").classList.add("hidden");
     document.getElementById("preGame").classList.remove("hidden");
+    document.getElementById("timerGoalLabel").textContent="Fast recall goal";
     recalcUnlocks();
 
     const answered = g.mode==="daily" ? ensureDaily().answered : Math.min(g.questionIndex,g.total);
@@ -712,6 +865,10 @@
         emoji="🧠";
         extra=`${g.correct}/13 correct, ${fluentPct}% within 5 seconds. Aim for at least 12 correct and 80% fluent.`;
       }
+    }else if(g.mode==="guided"){
+      title=`×${g.table} Guided Lesson Complete!`;
+      emoji="📚";
+      extra=`You worked through all 13 facts with the memory method. Next, use Recall Practice without the hint, then Speed 10 when recall feels comfortable.`;
     }else if(g.mode==="daily"){
       title="Daily Quest Complete!";
       emoji="⚡";
@@ -731,6 +888,7 @@
     game=null;
     document.getElementById("gameCard").classList.add("hidden");
     document.getElementById("preGame").classList.remove("hidden");
+    document.getElementById("timerGoalLabel").textContent="Fast recall goal";
     if(!silent) renderAll();
   }
 
@@ -758,12 +916,24 @@
   // Navigation
   document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
   document.getElementById("dailyQuestBtn").addEventListener("click",()=>startGame("daily"));
+  document.getElementById("learnCurrentBtn").addEventListener("click",openLearn);
   document.getElementById("quickRoundBtn").addEventListener("click",()=>startGame("quick"));
   document.getElementById("practiceCurrentBtn").addEventListener("click",()=>startGame("practice"));
+  document.getElementById("startLearnBtn").addEventListener("click",openLearn);
   document.getElementById("startPracticeBtn").addEventListener("click",()=>startGame("practice"));
   document.getElementById("startTestBtn").addEventListener("click",()=>startGame("test"));
   document.getElementById("startQuickBtn").addEventListener("click",()=>startGame("quick"));
   document.getElementById("quitGameBtn").addEventListener("click",()=>endGame());
+  document.getElementById("learnBackBtn").addEventListener("click",closeLearn);
+  document.getElementById("learnPrevBtn").addEventListener("click",()=>{learnIndex=(learnIndex+12)%13;renderLearn();});
+  document.getElementById("learnNextBtn").addEventListener("click",()=>{learnIndex=(learnIndex+1)%13;renderLearn();});
+  document.getElementById("learnSayBtn").addEventListener("click",()=>{
+    const t=state.selectedLevel;
+    document.getElementById("learnHint").textContent=`✅ Great. Say it once more: ${t} times ${learnIndex} equals ${t*learnIndex}.`;
+  });
+  document.getElementById("guidedPracticeBtn").addEventListener("click",()=>startGame("guided"));
+  document.getElementById("learnRecallBtn").addEventListener("click",()=>startGame("practice"));
+  document.getElementById("learnSpeedBtn").addEventListener("click",()=>startGame("quick"));
   document.getElementById("submitBtn").addEventListener("click",submitAnswer);
   document.getElementById("backBtn").addEventListener("click",backspace);
   document.querySelectorAll("[data-num]").forEach(b=>b.addEventListener("click",()=>pressNumber(b.dataset.num)));
