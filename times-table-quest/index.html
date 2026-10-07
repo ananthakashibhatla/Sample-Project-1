@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#6d5dfc" />
+<title>Times Table Quest</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --ink:#202235;
+    --muted:#6b7084;
+    --primary:#6d5dfc;
+    --primary2:#8e7dff;
+    --good:#22b573;
+    --bad:#ef476f;
+    --gold:#ffbf3c;
+    --blue:#3aa8ff;
+    --shadow:0 14px 35px rgba(28,35,58,.12);
+    --radius:24px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  button,input{font:inherit}
+  button{touch-action:manipulation; -webkit-tap-highlight-color:transparent}
+  .app{max-width:1050px; margin:0 auto; padding:18px}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,var(--primary),#ab83ff);display:grid;place-items:center;color:#fff;font-size:28px;box-shadow:var(--shadow)}
+  .brand h1{font-size:clamp(24px,4vw,36px);margin:0;line-height:1}
+  .brand small{color:var(--muted);font-weight:700}
+  .topstats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pill{background:var(--card);padding:9px 12px;border-radius:999px;box-shadow:0 5px 16px rgba(28,35,58,.08);font-weight:800;font-size:14px}
+  .nav{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+  .nav button{border:none;border-radius:16px;padding:12px 8px;background:#ebeef6;color:var(--muted);font-weight:900}
+  .nav button.active{background:var(--ink);color:#fff}
+  .panel{display:none}
+  .panel.active{display:block}
+  .hero{background:linear-gradient(135deg,#6d5dfc,#8e7dff 55%,#3aa8ff);color:#fff;border-radius:30px;padding:24px;box-shadow:var(--shadow);margin-bottom:18px;position:relative;overflow:hidden}
+  .hero:after{content:"✦";position:absolute;right:26px;top:8px;font-size:92px;opacity:.13;transform:rotate(16deg)}
+  .hero h2{margin:0 0 8px;font-size:clamp(28px,6vw,52px)}
+  .hero p{margin:0;max-width:650px;font-size:16px;line-height:1.5;opacity:.95}
+  .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .btn{border:none;border-radius:17px;padding:14px 18px;font-weight:900;box-shadow:0 8px 18px rgba(28,35,58,.12);cursor:pointer}
+  .btn.primary{background:#fff;color:var(--primary)}
+  .btn.dark{background:var(--ink);color:#fff}
+  .btn.soft{background:#ebeef6;color:var(--ink)}
+  .btn.good{background:var(--good);color:#fff}
+  .btn.danger{background:var(--bad);color:#fff}
+  .grid2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+  .card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 12px}
+  .levels{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .level{border:none;background:#f0f2f8;border-radius:18px;min-height:92px;padding:10px;font-weight:900;position:relative}
+  .level .big{font-size:28px;display:block}
+  .level .mini{font-size:11px;color:var(--muted);display:block;margin-top:4px}
+  .level.unlocked{background:#f1efff;color:#5140e5}
+  .level.mastered{background:#ddf8eb;color:#128f59}
+  .level.selected{outline:4px solid rgba(109,93,252,.22)}
+  .level.locked{opacity:.55}
+  .progressTrack{height:13px;border-radius:999px;background:#e9ecf3;overflow:hidden}
+  .progressFill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),var(--blue));width:0%}
+  .tiny{font-size:12px;color:var(--muted);font-weight:700}
+  .questCard{text-align:center;padding:18px}
+  .question{font-size:clamp(50px,11vw,92px);font-weight:1000;letter-spacing:-3px;margin:12px 0}
+  .answerBox{min-height:70px;border:4px solid #eceef4;border-radius:20px;background:#fafbfe;display:grid;place-items:center;font-size:38px;font-weight:1000;margin:10px auto 14px;max-width:340px}
+  .answerBox.good{border-color:#b9efd7;background:#effbf6;color:#128f59}
+  .answerBox.bad{border-color:#ffc9d6;background:#fff1f5;color:#c92f56}
+  .timer{max-width:480px;margin:0 auto 12px}
+  .timerbar{height:10px;background:#edf0f5;border-radius:999px;overflow:hidden}
+  .timerfill{height:100%;width:0%;background:linear-gradient(90deg,var(--good),var(--gold),var(--bad));transition:width .08s linear}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:440px;margin:12px auto 0}
+  .keypad button{border:none;border-radius:19px;background:#eef1f7;min-height:68px;font-size:28px;font-weight:1000;box-shadow:inset 0 -3px 0 rgba(0,0,0,.05)}
+  .keypad button:active{transform:scale(.97)}
+  .keypad .submit{background:var(--primary);color:#fff}
+  .keypad .back{background:#ffe8ef;color:#c92f56}
+  .gameHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .modeBadge{background:#eef0ff;color:#5140e5;padding:8px 12px;border-radius:999px;font-weight:900}
+  .feedback{min-height:38px;font-size:20px;font-weight:900;margin:6px 0}
+  .factGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .factTile{border-radius:16px;padding:12px;background:#f2f4f8}
+  .factTile strong{font-size:18px}
+  .factTile.good{background:#e3f8ee;color:#128f59}
+  .factTile.mid{background:#fff5d8;color:#8a6200}
+  .factTile.weak{background:#ffeaf0;color:#b72a4c}
+  .statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+  .statBox{background:#f3f5fa;border-radius:16px;padding:13px;text-align:center}
+  .statBox b{font-size:26px;display:block}
+  .weakList{display:grid;gap:8px}
+  .weakItem{display:flex;align-items:center;justify-content:space-between;background:#f7f8fb;border-radius:14px;padding:11px 13px}
+  .weakFact{font-weight:1000}
+  .hidden{display:none!important}
+  .overlay{position:fixed;inset:0;background:rgba(20,22,35,.72);display:grid;place-items:center;padding:20px;z-index:50}
+  .modal{background:#fff;border-radius:28px;padding:24px;max-width:520px;width:100%;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.25)}
+  .modal .emoji{font-size:64px}
+  .modal h2{font-size:34px;margin:8px 0}
+  .modal p{color:var(--muted);line-height:1.5}
+  .settingsRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eef0f4}
+  .switch{width:58px;height:34px;border-radius:999px;background:#d7dbe6;border:none;padding:4px;position:relative}
+  .switch span{display:block;width:26px;height:26px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on{background:var(--good)}
+  .switch.on span{transform:translateX(24px)}
+  .nameInput{width:100%;padding:13px;border:2px solid #e6e9f0;border-radius:14px;font-weight:800}
+  .footerNote{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 6px}
+  .confetti{position:fixed;top:-20px;width:12px;height:18px;border-radius:3px;z-index:60;animation:fall 1.9s linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.1}}
+  @media(max-width:780px){
+    .grid2{grid-template-columns:1fr}
+    .levels{grid-template-columns:repeat(4,1fr)}
+    .factGrid{grid-template-columns:repeat(3,1fr)}
+    .statGrid{grid-template-columns:repeat(2,1fr)}
+    .topbar{align-items:flex-start}
+  }
+  @media(max-width:470px){
+    .app{padding:12px}
+    .topstats{display:none}
+    .nav{grid-template-columns:repeat(4,1fr)}
+    .nav button{font-size:12px;padding:10px 3px}
+    .levels{grid-template-columns:repeat(3,1fr)}
+    .factGrid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">✖</div>
+      <div><h1>Times Table Quest</h1><small id="helloName">Multiplication Adventure</small></div>
+    </div>
+    <div class="topstats">
+      <div class="pill">⭐ <span id="xpTop">0</span> XP</div>
+      <div class="pill">🔥 <span id="streakTop">0</span> days</div>
+      <div class="pill">🏆 <span id="masteredTop">0</span>/13</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="active" data-tab="home">🏠 Home</button>
+    <button data-tab="play">🎮 Play</button>
+    <button data-tab="progress">📊 Progress</button>
+    <button data-tab="settings">⚙️ Settings</button>
+  </div>
+
+  <section id="home" class="panel active">
+    <div class="hero">
+      <h2>Ready to level up? 🚀</h2>
+      <p>Master one times table at a time, beat your own speed, and unlock the next level. The goal is accurate recall in about 5 seconds or less.</p>
+      <div class="ctaRow">
+        <button class="btn primary" id="dailyQuestBtn">⚡ Start Daily Quest</button>
+        <button class="btn dark" id="quickRoundBtn">🎯 Quick 10</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>🗺️ Level Map</h3>
+        <p class="tiny">Teacher order: 0, 1, 2, 4, 5, 10, 3, 6, 7, 8, 9, 11, 12</p>
+        <div id="levelMap" class="levels"></div>
+      </div>
+      <div class="card">
+        <h3>Today</h3>
+        <div class="statGrid">
+          <div class="statBox"><b id="todayAnswered">0</b><span class="tiny">answered</span></div>
+          <div class="statBox"><b id="todayAccuracy">—</b><span class="tiny">accuracy</span></div>
+          <div class="statBox"><b id="todayFluent">—</b><span class="tiny">≤ 5 sec</span></div>
+          <div class="statBox"><b id="todayXP">0</b><span class="tiny">XP earned</span></div>
+        </div>
+        <h3 style="margin-top:16px">Current Level</h3>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div><strong id="currentLevelText" style="font-size:26px">×0</strong><div class="tiny" id="currentLevelStatus">Start here</div></div>
+          <button class="btn soft" id="practiceCurrentBtn">Practice</button>
+        </div>
+        <div class="progressTrack" style="margin-top:12px"><div id="currentMasteryBar" class="progressFill"></div></div>
+        <div class="tiny" style="margin-top:6px"><span id="currentMasteryText">0%</span> mastery</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="play" class="panel">
+    <div id="preGame" class="card">
+      <h3>🎮 Choose a Challenge</h3>
+      <p class="tiny">Pick any unlocked level. Weak facts are automatically shown more often.</p>
+      <div id="playLevelMap" class="levels" style="margin:14px 0"></div>
+      <div class="ctaRow">
+        <button class="btn dark" id="startPracticeBtn">🧠 Practice</button>
+        <button class="btn good" id="startTestBtn">🏁 Level Test</button>
+        <button class="btn soft" id="startQuickBtn">🎯 Quick 10</button>
+      </div>
+    </div>
+
+    <div id="gameCard" class="card questCard hidden">
+      <div class="gameHeader">
+        <button class="btn soft" id="quitGameBtn">← Quit</button>
+        <span class="modeBadge" id="modeBadge">Practice</span>
+        <div class="pill">❤️ <span id="hearts">3</span></div>
+      </div>
+      <div class="tiny" id="roundProgress" style="margin-top:10px">Question 1</div>
+      <div class="progressTrack" style="max-width:520px;margin:8px auto 0"><div id="roundBar" class="progressFill"></div></div>
+
+      <div id="question" class="question">0 × 0</div>
+      <div class="timer">
+        <div style="display:flex;justify-content:space-between" class="tiny"><span>Fast recall goal</span><span id="timeText">0.0s</span></div>
+        <div class="timerbar"><div id="timerFill" class="timerfill"></div></div>
+      </div>
+      <div id="answerBox" class="answerBox">?</div>
+      <div id="feedback" class="feedback"></div>
+
+      <div class="keypad">
+        <button data-num="1">1</button><button data-num="2">2</button><button data-num="3">3</button>
+        <button data-num="4">4</button><button data-num="5">5</button><button data-num="6">6</button>
+        <button data-num="7">7</button><button data-num="8">8</button><button data-num="9">9</button>
+        <button class="back" id="backBtn">⌫</button><button data-num="0">0</button><button class="submit" id="submitBtn">✓</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="progress" class="panel">
+    <div class="grid2">
+      <div class="card">
+        <h3>📊 Overall Progress</h3>
+        <div class="statGrid">
+          <div class="statBox"><b id="overallXP">0</b><span class="tiny">XP</span></div>
+          <div class="statBox"><b id="overallAcc">—</b><span class="tiny">accuracy</span></div>
+          <div class="statBox"><b id="overallSpeed">—</b><span class="tiny">avg. speed</span></div>
+          <div class="statBox"><b id="overallMastered">0</b><span class="tiny">levels mastered</span></div>
+        </div>
+        <h3 style="margin-top:18px">Fact Mastery</h3>
+        <div id="factGrid" class="factGrid"></div>
+      </div>
+      <div class="card">
+        <h3>🎯 Facts to Practice Most</h3>
+        <div id="weakList" class="weakList"></div>
+        <h3 style="margin-top:20px">How mastery works</h3>
+        <p class="tiny" style="line-height:1.6">
+          A fact earns mastery through repeated correct answers and fast recall. A level is marked mastered when all facts are strong enough. Level Tests reward both accuracy and answers within the 5-second fluency goal.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" class="panel">
+    <div class="card">
+      <h3>⚙️ Settings</h3>
+      <label class="tiny">Student name</label>
+      <input id="studentName" class="nameInput" maxlength="20" placeholder="Player" />
+      <div class="settingsRow"><div><strong>🔊 Read questions aloud</strong><div class="tiny">Uses the iPad voice when available</div></div><button id="speechToggle" class="switch"><span></span></button></div>
+      <div class="settingsRow"><div><strong>✨ Celebration effects</strong><div class="tiny">Confetti after big wins</div></div><button id="confettiToggle" class="switch on"><span></span></button></div>
+      <div class="settingsRow"><div><strong>🎯 Show 5-second goal</strong><div class="tiny">The timer keeps going; accuracy still comes first</div></div><button id="timerToggle" class="switch on"><span></span></button></div>
+      <div class="ctaRow">
+        <button class="btn dark" id="saveSettingsBtn">Save Settings</button>
+        <button class="btn danger" id="resetBtn">Reset All Progress</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="footerNote">Designed for short, frequent multiplication practice. Progress stays on this device.</div>
+</div>
+
+<div id="modalOverlay" class="overlay hidden">
+  <div class="modal">
+    <div class="emoji" id="modalEmoji">🏆</div>
+    <h2 id="modalTitle">Great job!</h2>
+    <p id="modalText"></p>
+    <button class="btn dark" id="modalCloseBtn">Continue</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const ORDER = [0,1,2,4,5,10,3,6,7,8,9,11,12];
+  const STORAGE_KEY = "timesTableQuest_v1";
+  const todayKey = () => new Date().toISOString().slice(0,10);
+
+  const defaultState = () => ({
+    version: 1,
+    xp: 0,
+    streak: 0,
+    lastPracticeDate: null,
+    selectedLevel: 0,
+    unlockedIndex: 0,
+    masteredLevels: {},
+    facts: {},
+    daily: {},
+    settings: {name:"Player", speech:false, confetti:true, timer:true}
+  });
+
+  let state = loadState();
+  let game = null;
+  let timerRAF = null;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed, {settings:Object.assign(defaultState().settings, parsed.settings||{})});
+    }catch(e){ return defaultState(); }
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function ensureDaily(){
+    const t = todayKey();
+    if(!state.daily[t]) state.daily[t] = {answered:0, correct:0, fluent:0, xp:0};
+    return state.daily[t];
+  }
+
+  function updateStreak(){
+    const t = todayKey();
+    if(state.lastPracticeDate === t) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate()-1);
+    const y = yesterday.toISOString().slice(0,10);
+    state.streak = state.lastPracticeDate === y ? (state.streak||0)+1 : 1;
+    state.lastPracticeDate = t;
+  }
+
+  function factKey(table, multiplier){ return `${table}x${multiplier}`; }
+
+  function getFact(table, multiplier){
+    const k = factKey(table,multiplier);
+    if(!state.facts[k]){
+      state.facts[k] = {attempts:0, correct:0, totalMs:0, correctStreak:0, fastCorrect:0};
+    }
+    return state.facts[k];
+  }
+
+  function factScore(table,multiplier){
+    const f = getFact(table,multiplier);
+    if(f.attempts === 0) return 0;
+    const acc = f.correct / f.attempts;
+    const avg = f.correct ? f.totalMs / f.correct : 999999;
+    let score = Math.round(acc * 55);
+    score += Math.min(25, f.correct * 5);
+    if(avg <= 5000 && f.correct >= 2) score += 20;
+    else if(avg <= 7000 && f.correct >= 2) score += 10;
+    if(f.correctStreak >= 3) score += 10;
+    return Math.max(0, Math.min(100, score));
+  }
+
+  function levelMastery(table){
+    let sum = 0;
+    for(let m=0;m<=12;m++) sum += factScore(table,m);
+    return Math.round(sum/13);
+  }
+
+  function levelIsMastered(table){
+    for(let m=0;m<=12;m++){
+      if(factScore(table,m) < 75) return false;
+    }
+    return true;
+  }
+
+  function recalcUnlocks(){
+    let idx = 0;
+    for(let i=0;i<ORDER.length;i++){
+      const table = ORDER[i];
+      const mastered = levelIsMastered(table);
+      state.masteredLevels[table] = mastered;
+      if(mastered && i < ORDER.length-1) idx = Math.max(idx, i+1);
+    }
+    state.unlockedIndex = Math.max(state.unlockedIndex||0, idx);
+    if(ORDER.indexOf(state.selectedLevel) > state.unlockedIndex) state.selectedLevel = ORDER[state.unlockedIndex];
+  }
+
+  function isUnlocked(table){
+    return ORDER.indexOf(table) <= state.unlockedIndex;
+  }
+
+  function countMastered(){
+    return ORDER.filter(t => levelIsMastered(t)).length;
+  }
+
+  function switchTab(id){
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
+    document.getElementById(id).classList.add("active");
+    if(id==="progress") renderProgress();
+  }
+
+  function renderLevels(containerId, clickToPlay=false){
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    ORDER.forEach((table,i)=>{
+      const mastery = levelMastery(table);
+      const mastered = levelIsMastered(table);
+      const unlocked = i <= state.unlockedIndex;
+      const b = document.createElement("button");
+      b.className = "level " + (mastered ? "mastered" : unlocked ? "unlocked" : "locked") + (state.selectedLevel===table?" selected":"");
+      b.innerHTML = `<span class="big">${unlocked ? "×"+table : "🔒"}</span><span class="mini">${mastered ? "MASTERED" : unlocked ? mastery+"% mastery" : "Locked"}</span>`;
+      b.disabled = !unlocked;
+      b.addEventListener("click",()=>{
+        if(!unlocked) return;
+        state.selectedLevel=table;
+        saveState();
+        renderAll();
+        if(clickToPlay) switchTab("play");
+      });
+      el.appendChild(b);
+    });
+  }
+
+  function renderHome(){
+    recalcUnlocks();
+    const d = ensureDaily();
+    document.getElementById("xpTop").textContent = state.xp;
+    document.getElementById("streakTop").textContent = state.streak||0;
+    document.getElementById("masteredTop").textContent = countMastered();
+    document.getElementById("helloName").textContent = `${state.settings.name || "Player"}'s Multiplication Adventure`;
+    document.getElementById("todayAnswered").textContent = d.answered;
+    document.getElementById("todayAccuracy").textContent = d.answered ? Math.round(d.correct/d.answered*100)+"%" : "—";
+    document.getElementById("todayFluent").textContent = d.correct ? Math.round(d.fluent/d.correct*100)+"%" : "—";
+    document.getElementById("todayXP").textContent = d.xp||0;
+    const t = state.selectedLevel;
+    const m = levelMastery(t);
+    document.getElementById("currentLevelText").textContent = "×"+t;
+    document.getElementById("currentLevelStatus").textContent = levelIsMastered(t) ? "Mastered! ⭐" : "Keep building fluency";
+    document.getElementById("currentMasteryBar").style.width = m+"%";
+    document.getElementById("currentMasteryText").textContent = m+"%";
+    renderLevels("levelMap", true);
+  }
+
+  function overallStats(){
+    let attempts=0,correct=0,totalMs=0;
+    Object.values(state.facts).forEach(f=>{
+      attempts+=f.attempts||0;
+      correct+=f.correct||0;
+      totalMs+=f.totalMs||0;
+    });
+    return {attempts,correct,totalMs};
+  }
+
+  function renderProgress(){
+    const s = overallStats();
+    document.getElementById("overallXP").textContent = state.xp;
+    document.getElementById("overallAcc").textContent = s.attempts ? Math.round(s.correct/s.attempts*100)+"%" : "—";
+    document.getElementById("overallSpeed").textContent = s.correct ? (s.totalMs/s.correct/1000).toFixed(1)+"s" : "—";
+    document.getElementById("overallMastered").textContent = countMastered();
+
+    const fg = document.getElementById("factGrid");
+    fg.innerHTML="";
+    const current = state.selectedLevel;
+    for(let m=0;m<=12;m++){
+      const sc = factScore(current,m);
+      const f = getFact(current,m);
+      const avg = f.correct ? (f.totalMs/f.correct/1000).toFixed(1)+"s" : "—";
+      const tile=document.createElement("div");
+      tile.className="factTile "+(sc>=75?"good":sc>=40?"mid":"weak");
+      tile.innerHTML=`<strong>${current} × ${m} = ${current*m}</strong><div class="tiny">${sc}% mastery • ${avg}</div>`;
+      fg.appendChild(tile);
+    }
+
+    const weak=[];
+    ORDER.forEach(t=>{
+      if(!isUnlocked(t)) return;
+      for(let m=0;m<=12;m++){
+        const f=getFact(t,m);
+        weak.push({t,m,score:factScore(t,m), attempts:f.attempts, avg:f.correct?f.totalMs/f.correct:999999});
+      }
+    });
+    weak.sort((a,b)=>a.score-b.score || b.attempts-a.attempts);
+    const wl=document.getElementById("weakList");
+    wl.innerHTML="";
+    weak.slice(0,8).forEach(x=>{
+      const row=document.createElement("div");
+      row.className="weakItem";
+      const tag = x.attempts===0 ? "Not practiced yet" : `${x.score}% mastery`;
+      row.innerHTML=`<span class="weakFact">${x.t} × ${x.m}</span><span class="tiny">${tag}</span>`;
+      wl.appendChild(row);
+    });
+  }
+
+  function renderSettings(){
+    document.getElementById("studentName").value=state.settings.name||"";
+    toggleVisual("speechToggle",state.settings.speech);
+    toggleVisual("confettiToggle",state.settings.confetti);
+    toggleVisual("timerToggle",state.settings.timer);
+  }
+
+  function toggleVisual(id,on){ document.getElementById(id).classList.toggle("on",!!on); }
+
+  function renderAll(){
+    recalcUnlocks();
+    renderHome();
+    renderLevels("playLevelMap", false);
+    renderSettings();
+    renderProgress();
+    saveState();
+  }
+
+  function weightedMultiplier(table){
+    const bag=[];
+    for(let m=0;m<=12;m++){
+      const sc=factScore(table,m);
+      let weight=1;
+      if(sc<25) weight=6;
+      else if(sc<50) weight=4;
+      else if(sc<75) weight=3;
+      else weight=1;
+      for(let i=0;i<weight;i++) bag.push(m);
+    }
+    return bag[Math.floor(Math.random()*bag.length)];
+  }
+
+  function speakQuestion(table,m){
+    if(!state.settings.speech || !("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(`${table} times ${m}`);
+    u.rate=.9;
+    speechSynthesis.speak(u);
+  }
+
+  function startGame(mode){
+    if(game) endGame(true);
+    updateStreak();
+    const selected=state.selectedLevel;
+    game={
+      mode,
+      table:selected,
+      questionIndex:0,
+      total: mode==="quick" ? 10 : mode==="test" ? 13 : mode==="daily" ? 9999 : 20,
+      correct:0,
+      fluent:0,
+      hearts:3,
+      typed:"",
+      startMs:0,
+      currentM:0,
+      answered:false,
+      dailyEnd: mode==="daily" ? Date.now()+15*60*1000 : null,
+      testMultipliers: mode==="test" ? shuffle([...Array(13).keys()]) : null
+    };
+    document.getElementById("preGame").classList.add("hidden");
+    document.getElementById("gameCard").classList.remove("hidden");
+    document.getElementById("modeBadge").textContent =
+      mode==="daily" ? "⚡ 15-Min Daily Quest" :
+      mode==="quick" ? "🎯 Quick 10" :
+      mode==="test" ? "🏁 Level Test" : "🧠 Practice";
+    document.getElementById("hearts").textContent=game.hearts;
+    nextQuestion();
+    switchTab("play");
+  }
+
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function nextQuestion(){
+    if(!game) return;
+    if(game.mode==="daily" && Date.now()>=game.dailyEnd) return finishGame();
+    if(game.mode!=="daily" && game.questionIndex>=game.total) return finishGame();
+    if(game.hearts<=0 && game.mode!=="practice") return finishGame();
+
+    game.answered=false;
+    game.typed="";
+    game.currentM = game.mode==="test" ? game.testMultipliers[game.questionIndex] : weightedMultiplier(game.table);
+    game.questionIndex++;
+    game.startMs=performance.now();
+
+    document.getElementById("question").textContent=`${game.table} × ${game.currentM}`;
+    document.getElementById("answerBox").textContent="?";
+    document.getElementById("answerBox").className="answerBox";
+    document.getElementById("feedback").textContent="";
+    updateRoundProgress();
+    speakQuestion(game.table,game.currentM);
+    runTimer();
+  }
+
+  function runTimer(){
+    cancelAnimationFrame(timerRAF);
+    const tick=()=>{
+      if(!game || game.answered) return;
+      const ms=performance.now()-game.startMs;
+      document.getElementById("timeText").textContent=(ms/1000).toFixed(1)+"s";
+      const pct=Math.min(100,ms/5000*100);
+      document.getElementById("timerFill").style.width = state.settings.timer ? pct+"%" : "0%";
+      if(game.mode==="daily"){
+        const remain=Math.max(0,game.dailyEnd-Date.now());
+        if(remain<=0){ finishGame(); return; }
+      }
+      timerRAF=requestAnimationFrame(tick);
+    };
+    timerRAF=requestAnimationFrame(tick);
+  }
+
+  function updateRoundProgress(){
+    let label, pct;
+    if(game.mode==="daily"){
+      const remain=Math.max(0,game.dailyEnd-Date.now());
+      const min=Math.floor(remain/60000), sec=Math.floor((remain%60000)/1000);
+      label=`Daily Quest • ${min}:${String(sec).padStart(2,"0")} left • ${game.correct} correct`;
+      pct=100-(remain/(15*60*1000)*100);
+    }else{
+      label=`Question ${Math.min(game.questionIndex,game.total)} of ${game.total} • ${game.correct} correct`;
+      pct=(game.questionIndex-1)/game.total*100;
+    }
+    document.getElementById("roundProgress").textContent=label;
+    document.getElementById("roundBar").style.width=Math.max(0,Math.min(100,pct))+"%";
+  }
+
+  function pressNumber(n){
+    if(!game || game.answered) return;
+    if(game.typed.length>=3) return;
+    game.typed += n;
+    document.getElementById("answerBox").textContent=game.typed;
+  }
+
+  function backspace(){
+    if(!game || game.answered) return;
+    game.typed=game.typed.slice(0,-1);
+    document.getElementById("answerBox").textContent=game.typed||"?";
+  }
+
+  function submitAnswer(){
+    if(!game || game.answered || game.typed==="") return;
+    game.answered=true;
+    cancelAnimationFrame(timerRAF);
+    const elapsed=performance.now()-game.startMs;
+    const expected=game.table*game.currentM;
+    const given=Number(game.typed);
+    const correct=given===expected;
+    const fluent=correct && elapsed<=5000;
+    const fact=getFact(game.table,game.currentM);
+
+    fact.attempts++;
+    if(correct){
+      fact.correct++;
+      fact.totalMs+=elapsed;
+      fact.correctStreak++;
+      if(fluent) fact.fastCorrect++;
+      game.correct++;
+      if(fluent) game.fluent++;
+    }else{
+      fact.correctStreak=0;
+      game.hearts=Math.max(0,game.hearts-1);
+    }
+
+    const daily=ensureDaily();
+    daily.answered++;
+    if(correct) daily.correct++;
+    if(fluent) daily.fluent++;
+
+    let gain=correct ? 10 : 0;
+    if(fluent) gain+=5;
+    if(correct && fact.correctStreak>=3) gain+=5;
+    state.xp+=gain;
+    daily.xp+=gain;
+
+    const box=document.getElementById("answerBox");
+    box.className="answerBox "+(correct?"good":"bad");
+    box.textContent=correct ? expected : `${given} → ${expected}`;
+    document.getElementById("feedback").textContent = correct
+      ? (fluent ? `⚡ Nice! ${ (elapsed/1000).toFixed(1)}s  +${gain} XP` : `✅ Correct! Build the speed next. +${gain} XP`)
+      : `❌ Almost — ${game.table} × ${game.currentM} = ${expected}`;
+    document.getElementById("hearts").textContent=game.hearts;
+
+    recalcUnlocks();
+    saveState();
+    renderHome();
+
+    setTimeout(()=> {
+      if(!game) return;
+      if(game.hearts<=0 && game.mode!=="practice") finishGame();
+      else nextQuestion();
+    }, correct ? 850 : 1450);
+  }
+
+  function finishGame(){
+    if(!game) return;
+    cancelAnimationFrame(timerRAF);
+    const g=game;
+    game=null;
+    document.getElementById("gameCard").classList.add("hidden");
+    document.getElementById("preGame").classList.remove("hidden");
+    recalcUnlocks();
+
+    const answered = g.mode==="daily" ? ensureDaily().answered : Math.min(g.questionIndex,g.total);
+    const runAnswered = g.mode==="daily" ? Math.max(1,g.correct + (3-g.hearts)) : Math.max(1,Math.min(g.questionIndex,g.total));
+    const acc = Math.round(g.correct/runAnswered*100);
+    const fluentPct = g.correct ? Math.round(g.fluent/g.correct*100) : 0;
+
+    let title="Great work!";
+    let emoji="🎉";
+    let extra=`You got ${g.correct} correct. ${fluentPct}% of your correct answers were within 5 seconds.`;
+
+    if(g.mode==="test"){
+      const passed = g.correct>=12 && fluentPct>=80;
+      if(passed){
+        title=`×${g.table} Test Passed!`;
+        emoji="🏆";
+        extra=`${g.correct}/13 correct and ${fluentPct}% fluent. Keep practicing until every fact feels automatic.`;
+        // Give a mastery boost for a strong formal test.
+        for(let m=0;m<=12;m++){
+          const f=getFact(g.table,m);
+          if(f.attempts>0 && f.correct>0) f.correctStreak=Math.max(f.correctStreak,3);
+        }
+        state.xp+=75;
+      }else{
+        title="Good test attempt";
+        emoji="🧠";
+        extra=`${g.correct}/13 correct, ${fluentPct}% within 5 seconds. Aim for at least 12 correct and 80% fluent.`;
+      }
+    }else if(g.mode==="daily"){
+      title="Daily Quest Complete!";
+      emoji="⚡";
+      extra=`You practiced ${g.correct} correct facts. Come back tomorrow to keep your ${state.streak}-day streak going.`;
+    }
+
+    recalcUnlocks();
+    saveState();
+    renderAll();
+    if(state.settings.confetti && (g.correct>=8 || g.mode==="test")) confetti();
+    showModal(emoji,title,extra);
+  }
+
+  function endGame(silent=false){
+    if(!game) return;
+    cancelAnimationFrame(timerRAF);
+    game=null;
+    document.getElementById("gameCard").classList.add("hidden");
+    document.getElementById("preGame").classList.remove("hidden");
+    if(!silent) renderAll();
+  }
+
+  function showModal(emoji,title,text){
+    document.getElementById("modalEmoji").textContent=emoji;
+    document.getElementById("modalTitle").textContent=title;
+    document.getElementById("modalText").textContent=text;
+    document.getElementById("modalOverlay").classList.remove("hidden");
+  }
+
+  function confetti(){
+    const colors=["#6d5dfc","#22b573","#ffbf3c","#ef476f","#3aa8ff","#ff7a59"];
+    for(let i=0;i<70;i++){
+      const d=document.createElement("div");
+      d.className="confetti";
+      d.style.left=Math.random()*100+"vw";
+      d.style.background=colors[Math.floor(Math.random()*colors.length)];
+      d.style.animationDelay=(Math.random()*.5)+"s";
+      d.style.transform=`rotate(${Math.random()*360}deg)`;
+      document.body.appendChild(d);
+      setTimeout(()=>d.remove(),2600);
+    }
+  }
+
+  // Navigation
+  document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+  document.getElementById("dailyQuestBtn").addEventListener("click",()=>startGame("daily"));
+  document.getElementById("quickRoundBtn").addEventListener("click",()=>startGame("quick"));
+  document.getElementById("practiceCurrentBtn").addEventListener("click",()=>startGame("practice"));
+  document.getElementById("startPracticeBtn").addEventListener("click",()=>startGame("practice"));
+  document.getElementById("startTestBtn").addEventListener("click",()=>startGame("test"));
+  document.getElementById("startQuickBtn").addEventListener("click",()=>startGame("quick"));
+  document.getElementById("quitGameBtn").addEventListener("click",()=>endGame());
+  document.getElementById("submitBtn").addEventListener("click",submitAnswer);
+  document.getElementById("backBtn").addEventListener("click",backspace);
+  document.querySelectorAll("[data-num]").forEach(b=>b.addEventListener("click",()=>pressNumber(b.dataset.num)));
+  document.getElementById("modalCloseBtn").addEventListener("click",()=>document.getElementById("modalOverlay").classList.add("hidden"));
+
+  // Keyboard support too
+  window.addEventListener("keydown",e=>{
+    if(!game) return;
+    if(/^[0-9]$/.test(e.key)) pressNumber(e.key);
+    else if(e.key==="Backspace") backspace();
+    else if(e.key==="Enter") submitAnswer();
+  });
+
+  // Settings
+  document.getElementById("speechToggle").addEventListener("click",()=>{state.settings.speech=!state.settings.speech;toggleVisual("speechToggle",state.settings.speech);});
+  document.getElementById("confettiToggle").addEventListener("click",()=>{state.settings.confetti=!state.settings.confetti;toggleVisual("confettiToggle",state.settings.confetti);});
+  document.getElementById("timerToggle").addEventListener("click",()=>{state.settings.timer=!state.settings.timer;toggleVisual("timerToggle",state.settings.timer);});
+  document.getElementById("saveSettingsBtn").addEventListener("click",()=>{
+    state.settings.name=document.getElementById("studentName").value.trim()||"Player";
+    saveState(); renderAll(); showModal("✅","Settings saved",`Ready to go, ${state.settings.name}!`);
+  });
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    if(confirm("Reset all XP, streaks, mastery, and fact history?")){
+      state=defaultState(); saveState(); renderAll(); showModal("🔄","Progress reset","The game is back to a fresh start.");
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
