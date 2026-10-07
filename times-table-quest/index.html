@@ -348,7 +348,15 @@
     12:{title:"×10 + ×2", text:"Build ×12 from the easy ×10 fact plus a double."}
   };
   const STORAGE_KEY = "timesTableQuest_v1";
-  const todayKey = () => new Date().toISOString().slice(0,10);
+  const CLOUD_ENDPOINT = "https://jaidzqxiraxusqxkqhvs.supabase.co/functions/v1/times-table-sync";
+  const STUDENT_TOKEN_KEY = "ttq_student_token";
+  function localDateKey(offsetDays=0){
+    const d = new Date();
+    d.setDate(d.getDate()+offsetDays);
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  const todayKey = () => localDateKey(0);
 
   const defaultState = () => ({
     version: 1,
@@ -367,6 +375,16 @@
   let game = null;
   let timerRAF = null;
   let learnIndex = 0;
+  let activityStartedAt = null;
+  let syncTimer = null;
+  let syncInFlight = false;
+  let syncPending = false;
+
+  const urlStudentToken = new URLSearchParams(location.search).get("student");
+  if(urlStudentToken && /^[A-Za-z0-9_-]{20,200}$/.test(urlStudentToken)){
+    localStorage.setItem(STUDENT_TOKEN_KEY, urlStudentToken);
+  }
+  const studentToken = localStorage.getItem(STUDENT_TOKEN_KEY) || "";
 
   function loadState(){
     try{
@@ -379,20 +397,57 @@
 
   function saveState(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    scheduleCloudSync();
   }
 
   function ensureDaily(){
     const t = todayKey();
-    if(!state.daily[t]) state.daily[t] = {answered:0, correct:0, fluent:0, xp:0};
+    if(!state.daily[t]) state.daily[t] = {answered:0, correct:0, fluent:0, xp:0, seconds:0};
+    if(typeof state.daily[t].seconds !== "number") state.daily[t].seconds = 0;
     return state.daily[t];
+  }
+
+  function startActivity(){
+    if(activityStartedAt===null) activityStartedAt=Date.now();
+  }
+
+  function stopActivity(){
+    if(activityStartedAt===null) return;
+    const seconds=Math.max(0,Math.min(3600,Math.round((Date.now()-activityStartedAt)/1000)));
+    if(seconds>0) ensureDaily().seconds += seconds;
+    activityStartedAt=null;
+  }
+
+  function scheduleCloudSync(delay=900){
+    if(!studentToken) return;
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(()=>cloudSync(),delay);
+  }
+
+  async function cloudSync(){
+    if(!studentToken) return;
+    if(syncInFlight){ syncPending=true; return; }
+    syncInFlight=true;
+    syncPending=false;
+    try{
+      await fetch(CLOUD_ENDPOINT,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action:"sync",token:studentToken,localDate:todayKey(),state}),
+        keepalive:true
+      });
+    }catch(_e){
+      // Progress remains safely stored on the iPad and will retry later.
+    }finally{
+      syncInFlight=false;
+      if(syncPending) scheduleCloudSync(250);
+    }
   }
 
   function updateStreak(){
     const t = todayKey();
     if(state.lastPracticeDate === t) return;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate()-1);
-    const y = yesterday.toISOString().slice(0,10);
+    const y = localDateKey(-1);
     state.streak = state.lastPracticeDate === y ? (state.streak||0)+1 : 1;
     state.lastPracticeDate = t;
   }
@@ -626,6 +681,8 @@
 
   function openLearn(){
     if(game) endGame(true);
+    startActivity();
+    updateStreak();
     learnIndex=0;
     document.getElementById("preGame").classList.add("hidden");
     document.getElementById("gameCard").classList.add("hidden");
@@ -635,8 +692,11 @@
   }
 
   function closeLearn(){
+    stopActivity();
+    saveState();
     document.getElementById("learnCard").classList.add("hidden");
     document.getElementById("preGame").classList.remove("hidden");
+    cloudSync();
   }
 
   function weightedMultiplier(table){
@@ -663,6 +723,7 @@
 
   function startGame(mode){
     if(game) endGame(true);
+    startActivity();
     updateStreak();
     const selected=state.selectedLevel;
     game={
@@ -831,6 +892,7 @@
   function finishGame(){
     if(!game) return;
     cancelAnimationFrame(timerRAF);
+    stopActivity();
     const g=game;
     game=null;
     document.getElementById("gameCard").classList.add("hidden");
@@ -878,6 +940,7 @@
     recalcUnlocks();
     saveState();
     renderAll();
+    cloudSync();
     if(state.settings.confetti && (g.correct>=8 || g.mode==="test")) confetti();
     showModal(emoji,title,extra);
   }
@@ -885,11 +948,14 @@
   function endGame(silent=false){
     if(!game) return;
     cancelAnimationFrame(timerRAF);
+    stopActivity();
     game=null;
     document.getElementById("gameCard").classList.add("hidden");
     document.getElementById("preGame").classList.remove("hidden");
     document.getElementById("timerGoalLabel").textContent="Fast recall goal";
+    saveState();
     if(!silent) renderAll();
+    cloudSync();
   }
 
   function showModal(emoji,title,text){
@@ -961,7 +1027,20 @@
     }
   });
 
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden){
+      stopActivity();
+      saveState();
+      cloudSync();
+    }else if(game || !document.getElementById("learnCard").classList.contains("hidden")){
+      startActivity();
+    }
+  });
+
+  window.addEventListener("online",()=>cloudSync());
+
   renderAll();
+  setTimeout(()=>cloudSync(),1200);
 })();
 </script>
 </body>
