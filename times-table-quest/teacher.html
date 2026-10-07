@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Times Table Quest — Teacher Progress</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#202235;--muted:#6b7084;--primary:#6d5dfc;--good:#22b573;--warn:#e7a500;--bad:#ef476f;--border:#e8ebf2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}.wrap{max-width:1000px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.brand h1{margin:0;font-size:clamp(25px,5vw,38px)}.brand p{margin:5px 0 0;color:var(--muted);font-weight:650}.btn{border:0;border-radius:14px;padding:12px 16px;background:var(--ink);color:white;font-weight:850}.status{font-size:13px;color:var(--muted);font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.metric,.card{background:var(--card);border-radius:20px;border:1px solid var(--border)}.metric{padding:15px;text-align:center}.metric b{display:block;font-size:28px}.metric span{font-size:12px;color:var(--muted);font-weight:750}.card{padding:18px;margin:14px 0}.card h2{margin:0 0 12px;font-size:20px}.progress{display:flex;gap:7px;flex-wrap:wrap}.level{min-width:59px;text-align:center;border-radius:13px;padding:10px 8px;background:#eef1f7;font-weight:900}.level small{display:block;color:var(--muted);margin-top:3px}.level.good{background:#e1f8ed;color:#137a50}.level.dev{background:#fff3cf;color:#805b00}.level.learn{background:#ffe8ef;color:#a62949}.level.lock{opacity:.55}.weak{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.fact{background:#f5f6f9;border-radius:12px;padding:11px;font-weight:850}.fact small{display:block;color:var(--muted);font-weight:650;margin-top:4px}.history{overflow:auto}.history table{width:100%;border-collapse:collapse;min-width:650px}.history th,.history td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}.history th{color:var(--muted);font-size:12px}.empty{color:var(--muted);padding:16px 0}.error{background:#fff0f4;color:#a62949;border-radius:14px;padding:14px;margin-top:16px}.studentTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.badge{padding:7px 10px;border-radius:999px;background:#eeecff;color:#5140e5;font-weight:850;font-size:13px}@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}.weak{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><h1>📊 Teacher Progress</h1><p>Times Table Quest — updates automatically</p></div>
+    <div><button class="btn" id="refresh">Refresh</button><div class="status" id="status">Loading…</div></div>
+  </div>
+  <div id="app"></div>
+</div>
+<script>
+(()=>{
+  const ENDPOINT="https://jaidzqxiraxusqxkqhvs.supabase.co/functions/v1/times-table-sync";
+  const token=new URLSearchParams(location.search).get("teacher")||"";
+  const ORDER=[0,1,2,4,5,10,3,6,7,8,9,11,12];
+  const app=document.getElementById("app"), status=document.getElementById("status");
+  const esc=s=>String(s??"").replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+  const pct=v=>v==null?"—":`${Math.round(v)}%`;
+  const secs=v=>v==null?"—":`${Number(v).toFixed(1)}s`;
+  const mins=s=>s?`${Math.max(1,Math.round(Number(s)/60))} min`:"0 min";
+  function levelClass(st){return st==="mastered"||st==="strong"?"good":st==="developing"?"dev":st==="learning"?"learn":"lock"}
+  function renderStudent(st){
+    if(!st.latest){return `<section class="card"><div class="studentTitle"><h2>${esc(st.label)}</h2><span class="badge">No practice yet</span></div><div class="empty">Once the student plays, this page will fill in automatically.</div></section>`}
+    const s=st.latest.summary||{}, t=s.today||{};
+    const levels=ORDER.map(n=>`<div class="level ${levelClass(s.table_status?.[String(n)])}">×${n}<small>${s.table_mastery?.[String(n)]??0}%</small></div>`).join("");
+    const weak=(s.weakest_facts||[]).slice(0,8).map(f=>`<div class="fact">${esc(f.fact)}<small>${f.score}% mastery · ${f.accuracy}% correct${f.avg_seconds!=null?` · ${f.avg_seconds}s`:""}</small></div>`).join("")||'<div class="empty">No weak facts yet.</div>';
+    const hist=(st.daily||[]).slice(0,14).map(d=>{const x=d.summary||{}, y=x.today||{};return `<tr><td>${esc(d.practice_date)}</td><td>×${esc(x.current_table)}</td><td>${pct(x.current_mastery)}</td><td>${esc(y.answered??0)}</td><td>${pct(y.accuracy)}</td><td>${pct(y.fluent_percent)}</td><td>${mins(y.practice_seconds)}</td></tr>`}).join("");
+    return `<section class="card"><div class="studentTitle"><h2>${esc(st.label)}</h2><span class="badge">Current: ×${esc(s.current_table)} · ${pct(s.current_mastery)}</span></div>
+      <div class="grid"><div class="metric"><b>${esc(t.answered??0)}</b><span>questions today</span></div><div class="metric"><b>${pct(t.accuracy)}</b><span>accuracy today</span></div><div class="metric"><b>${pct(t.fluent_percent)}</b><span>≤ 5 sec fluency</span></div><div class="metric"><b>${mins(t.practice_seconds)}</b><span>practice today</span></div></div>
+      <h2>Table Progress</h2><div class="progress">${levels}</div>
+      <h2 style="margin-top:20px">Needs the Most Practice</h2><div class="weak">${weak}</div>
+      <h2 style="margin-top:20px">Daily History</h2><div class="history"><table><thead><tr><th>Date</th><th>Current</th><th>Mastery</th><th>Questions</th><th>Accuracy</th><th>≤5 sec</th><th>Time</th></tr></thead><tbody>${hist}</tbody></table></div>
+    </section>`;
+  }
+  async function load(){
+    if(!token){app.innerHTML='<div class="error">This teacher link is incomplete.</div>';status.textContent="Not connected";return}
+    status.textContent="Updating…";
+    try{
+      const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"teacher",token})});
+      if(!r.ok) throw new Error("Could not load progress");
+      const data=await r.json();
+      app.innerHTML=(data.students||[]).map(renderStudent).join("")||'<div class="card empty">No students yet.</div>';
+      status.textContent=`Updated ${new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}`;
+    }catch(e){app.innerHTML='<div class="error">Could not load progress right now. Tap Refresh.</div>';status.textContent="Update failed"}
+  }
+  document.getElementById("refresh").addEventListener("click",load);
+  load();
+  setInterval(load,60000);
+})();
+</script>
+</body>
+</html>
