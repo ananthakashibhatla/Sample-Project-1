@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#202235">
+<title>Times Table Quest — Teacher Progress</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#202235;--muted:#6b7084;--line:#e8ebf2;--accent:#6d5dfc;--good:#169b62;--warn:#a96d00;--bad:#c83259}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1050px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{margin:0;font-size:clamp(25px,4vw,38px)}.sub{color:var(--muted);font-weight:700;margin-top:5px}.btn{border:0;border-radius:14px;padding:12px 16px;background:var(--ink);color:white;font-weight:900;cursor:pointer}
+.card{background:var(--card);border-radius:22px;padding:18px;margin-bottom:16px;box-shadow:0 10px 28px rgba(30,35,58,.08)}
+.studentHead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.badge{border-radius:999px;background:#eeeefe;color:#5243d6;padding:8px 11px;font-weight:900}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}.stat{background:#f3f5fa;border-radius:16px;padding:13px;text-align:center}.stat b{display:block;font-size:26px}.stat span{font-size:12px;color:var(--muted);font-weight:800}
+.progression{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.level{border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;background:#fafbfe}.level b{display:block;font-size:20px}.level small{font-size:11px;color:var(--muted);font-weight:800}.level.mastered{background:#e4f8ef;color:var(--good)}.level.strong{background:#eef7f2;color:var(--good)}.level.developing{background:#fff6dc;color:var(--warn)}.level.learning{background:#ffedf2;color:var(--bad)}.level.locked{opacity:.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.weak{display:flex;justify-content:space-between;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line)}.weak:last-child{border-bottom:0}.fact{font-weight:1000}
+table{width:100%;border-collapse:collapse}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.right{text-align:right}
+.empty{text-align:center;padding:40px 15px;color:var(--muted)}.error{background:#fff0f3;color:var(--bad);padding:14px;border-radius:14px;font-weight:800}.okdot{display:inline-block;width:9px;height:9px;background:var(--good);border-radius:50%;margin-right:6px}
+.trendRow{display:grid;grid-template-columns:95px 1fr 48px;gap:8px;align-items:center;margin:9px 0}.bar{height:12px;background:#edf0f5;border-radius:999px;overflow:hidden}.fill{height:100%;background:var(--accent);border-radius:999px}
+.note{font-size:12px;color:var(--muted);line-height:1.5}.scroll{overflow-x:auto}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.progression{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Teacher Progress</h1><div class="sub">Times Table Quest • updates automatically</div></div>
+    <button class="btn" id="refresh">↻ Refresh</button>
+  </div>
+  <div id="status" class="card">Loading progress…</div>
+  <div id="students"></div>
+  <div class="note">This dashboard is private by its access link. Keep the teacher link for yourself. The student's game does not show or require this dashboard.</div>
+</div>
+<script>
+(()=>{
+"use strict";
+const ENDPOINT="https://jaidzqxiraxusqxkqhvs.supabase.co/functions/v1/times-table-sync";
+const ORDER=[0,1,2,4,5,10,3,6,7,8,9,11,12];
+const params=new URLSearchParams(location.search);
+const fromUrl=params.get("teacher");
+if(fromUrl) localStorage.setItem("ttq_teacher_token",fromUrl);
+const token=fromUrl||localStorage.getItem("ttq_teacher_token")||"";
+const status=document.getElementById("status"), root=document.getElementById("students");
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function pct(v){return v===null||v===undefined?"—":Math.round(Number(v))+"%";}
+function secs(v){return v===null||v===undefined?"—":Number(v).toFixed(1)+"s";}
+function mins(v){const n=Number(v||0); if(n<60)return n? "<1 min":"0 min"; return Math.round(n/60)+" min";}
+function when(iso){if(!iso)return "Never"; try{return new Date(iso).toLocaleString([], {dateStyle:"medium",timeStyle:"short"});}catch{return iso;}}
+function fmtDate(s){if(!s)return ""; const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString([], {month:"short",day:"numeric"});}
+
+function studentCard(s){
+  if(!s.latest){
+    return '<section class="card"><div class="studentHead"><div><h2 style="margin:0">'+esc(s.label)+'</h2><div class="sub">No practice synced yet</div></div></div><div class="empty">Once the student opens the assigned game link and starts playing, progress will appear here automatically.</div></section>';
+  }
+  const q=s.latest.summary||{}, t=q.today||{}, weak=q.weakest_facts||[], tm=q.table_mastery||{}, ts=q.table_status||{};
+  const daily=(s.daily||[]).slice(0,14);
+  const levels=ORDER.map(x=>'<div class="level '+esc(ts[String(x)]||"locked")+'"><b>×'+x+'</b><small>'+pct(tm[String(x)]||0)+'</small></div>').join("");
+  const weakHtml=weak.length?weak.map(w=>'<div class="weak"><span class="fact">'+esc(w.fact)+'</span><span>'+pct(w.score)+' mastery • '+pct(w.accuracy)+' accuracy'+(w.avg_seconds!=null?' • '+secs(w.avg_seconds):'')+'</span></div>').join(""):'<div class="empty">No weak facts yet.</div>';
+  const trend=daily.slice().reverse().map(d=>{
+    const m=Number(d.summary?.current_mastery||0);
+    return '<div class="trendRow"><span>'+fmtDate(d.practice_date)+' • ×'+esc(d.summary?.current_table??"—")+'</span><div class="bar"><div class="fill" style="width:'+Math.max(0,Math.min(100,m))+'%"></div></div><b>'+m+'%</b></div>';
+  }).join("")||'<div class="empty">No history yet.</div>';
+  const rows=daily.map(d=>{
+    const a=d.summary?.today||{};
+    return '<tr><td>'+fmtDate(d.practice_date)+'</td><td>×'+esc(d.summary?.current_table??"—")+'</td><td>'+pct(d.summary?.current_mastery)+'</td><td>'+esc(a.answered||0)+'</td><td>'+pct(a.accuracy)+'</td><td>'+pct(a.fluent_percent)+'</td><td>'+mins(a.practice_seconds)+'</td></tr>';
+  }).join("");
+  return '<section class="card">'+
+    '<div class="studentHead"><div><h2 style="margin:0">'+esc(s.label)+'</h2><div class="sub"><span class="okdot"></span>Last synced '+esc(when(s.latest.updated_at))+'</div></div><div class="badge">Current: ×'+esc(q.current_table)+'</div></div>'+
+    '<div class="stats">'+
+      '<div class="stat"><b>'+mins(t.practice_seconds)+'</b><span>ACTIVE PRACTICE TODAY</span></div>'+
+      '<div class="stat"><b>'+esc(t.answered||0)+'</b><span>QUESTIONS TODAY</span></div>'+
+      '<div class="stat"><b>'+pct(t.accuracy)+'</b><span>ACCURACY TODAY</span></div>'+
+      '<div class="stat"><b>'+pct(t.fluent_percent)+'</b><span>≤ 5 SEC FLUENCY</span></div>'+
+      '<div class="stat"><b>×'+esc(q.current_table)+'</b><span>CURRENT TABLE</span></div>'+
+      '<div class="stat"><b>'+pct(q.current_mastery)+'</b><span>CURRENT MASTERY</span></div>'+
+      '<div class="stat"><b>'+esc(q.mastered_levels||0)+'/13</b><span>TABLES MASTERED</span></div>'+
+      '<div class="stat"><b>🔥 '+esc(q.streak||0)+'</b><span>DAY STREAK</span></div>'+
+    '</div>'+
+    '<h3>Times-table progression</h3><div class="progression">'+levels+'</div>'+
+    '<div class="grid" style="margin-top:18px"><div><h3>Facts needing the most practice</h3><div>'+weakHtml+'</div></div><div><h3>Recent mastery trend</h3>'+trend+'</div></div>'+
+    '<h3 style="margin-top:20px">Daily history</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Table</th><th>Mastery</th><th>Questions</th><th>Accuracy</th><th>≤5 sec</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+  '</section>';
+}
+
+async function load(){
+  if(!token){status.innerHTML='<div class="error">This page needs your private teacher access link.</div>';root.innerHTML="";return;}
+  status.textContent="Refreshing progress…";
+  try{
+    const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"teacher",token})});
+    const j=await r.json();
+    if(!r.ok||!j.ok)throw new Error(j.error||"Could not load");
+    const students=j.students||[];
+    status.innerHTML='<span class="okdot"></span><b>Dashboard up to date</b> <span class="sub">• '+esc(when(j.generated_at))+'</span>';
+    root.innerHTML=students.length?students.map(studentCard).join(""):'<div class="card empty">No students configured.</div>';
+  }catch(e){
+    status.innerHTML='<div class="error">Could not load progress. Check your connection and use your private teacher link.</div>';
+  }
+}
+document.getElementById("refresh").addEventListener("click",load);
+load();
+setInterval(load,60000);
+})();
+</script>
+</body>
+</html>
